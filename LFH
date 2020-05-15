@@ -1,4 +1,580 @@
-{
-  "updateurl": "http://www.qrlk.me/dev/moonloader/adblock/!adblock.lua",
-  "latest": "01.01.2019"
-}
+script_name("Land Forces Helper")
+script_authors("Hard name_Gussatti")
+script_version("0.1")
+require "moonloader"
+local sampev = require 'lib.samp.events'
+local imgui = require "imgui"
+local encoding = require "encoding"
+local samp = require "samp.events"
+require 'lib.sampfuncs'
+require 'lib.moonloader'
+local memory = require "memory"
+local bNotf, notf = pcall(import, "imgui_notf.lua")
+local vkeys = require 'vkeys'
+local rkeys = require 'rkeys'
+local inicfg = require "inicfg"
+local game_keys = require 'game.keys'
+encoding.default = 'CP1251'
+u8 = encoding.UTF8
+local hud = imgui.ImBool(true)
+local man = imgui.ImBool(false)
+local so = imgui.ImBool(false)
+local sopr = imgui.ImBool(false)
+local lek = imgui.ImBool(false)
+local test_text_buffer = imgui.ImBuffer(256)
+local gray = 0x808080
+
+local mainIni = inicfg.load({
+  config =
+  {
+    autoscreen = true,
+	hud = true
+  }
+},'LFH.ini')
+inicfg.save(mainIni, 'LFH.ini')
+
+local ftegbuff = imgui.ImBuffer((mainIni.config.fteg or ''),256)
+local rtegbuff = imgui.ImBuffer((mainIni.config.rteg or ''),256)
+local accentbuff = imgui.ImBuffer((mainIni.config.accent or ''),256)
+local autoscreen = imgui.ImBool((mainIni.config.autoscreen == true ))
+local hud = imgui.ImBool((mainIni.config.hud == true ))
+local img_logo = imgui.CreateTextureFromFile(getGameDirectory() .. '\\moonloader\\image\\MO.png')
+
+local check = true
+local my = {}
+
+function main()
+  while not isSampAvailable() do wait(100) end
+	autoupdate("https://api.jsonbin.io/b/5ebbc51247a2266b1477b7c1/3", '['..string.upper(thisScript().name)..']: ', "https://gitlab.com/Eekstr1m/land-forces/-/raw/master/lfhscript")
+	sampRegisterChatCommand('f', fradio)
+	sampRegisterChatCommand('r', rradio)
+	sampRegisterChatCommand('invite', cmd_invite)
+	sampRegisterChatCommand('uninvite', cmd_uninvite)
+	sampRegisterChatCommand('dis', cmd_dis)
+	sampRegisterChatCommand('fwarn', cmd_fwarn)
+	sampRegisterChatCommand('setskin', cmd_setskin)
+	sampRegisterChatCommand('rang', cmd_rang)
+	sampRegisterChatCommand('division', cmd_division)
+	sampRegisterChatCommand('lfh', function()
+        man.v = not man.v
+    end)
+	sampRegisterChatCommand('so', function()
+        so.v = not so.v
+    end)
+	sampRegisterChatCommand('sopr', function()
+        sopr.v = not sopr.v
+    end)
+	sampRegisterChatCommand('lek', function()
+        lek.v = not lek.v
+    end)
+	
+	wait(20000)
+	_, id =  sampGetPlayerIdByCharHandle(PLAYER_PED)
+	name  =  sampGetPlayerNickname(id)
+	lastname = name :match('.*_(.*)')
+	firstname = name :match('(.*)_.*')
+	sampSendChat('/stats')
+	
+	if bNotf then	notf.addNotification('Land Forces Helper загружен', 3, 3) end
+	
+	while true do
+        wait(0)
+		
+		imgui.Process = true
+	
+	end
+end
+
+function sampev.onShowDialog(id,style,title,button1,button2,text)
+	if title:find('Статистика') and check then
+		for line in text: gmatch("[^\n]+") do
+			if line:find('Должность:%s+%{0099ff%}(.*)') then
+				rang = line:match('Должность:%s+%{0099ff%}(.*)')
+			end
+		end
+		check = false
+		sampSendDialogResponse(id)
+		return false
+	end
+end
+
+function imgui.OnDrawFrame()
+    if hud.v then 
+        local ex, ey = getScreenResolution()
+		imgui.ShowCursor = false
+		imgui.SetNextWindowPos(imgui.ImVec2(1475, ex /5), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 	0.5))
+        imgui.SetNextWindowSize(imgui.ImVec2(230, 130), imgui.Cond.FirstUseEver)
+		imgui.Begin(u8' Land Forces Helper', -1, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.ShowBorders)
+		imgui.CenterText(u8:encode(name)..'['..id..']')
+		imgui.CenterText((rang and ''..u8:encode(rang)..'' or u8'Загрузка...'))
+		imgui.Separator()
+		imgui.Text(u8'Уровень: '..sampGetPlayerScore(id))
+		imgui.Text('Ping: '..sampGetPlayerPing(id))
+		imgui.Separator()
+		imgui.CenterText(os.date("%X %D"))
+		imgui.End()
+	end
+	if man.v then
+	local ex, ey = getScreenResolution()
+		imgui.ShowCursor = true
+		imgui.SetNextWindowPos(imgui.ImVec2(ex/2, ey/2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 	0.5))
+		imgui.SetNextWindowSize(imgui.ImVec2(700, 470), imgui.Cond.FirstUseEver)
+		imgui.Begin(u8'Land Forces Helper', man, imgui.WindowFlags.ShowBorders+imgui.WindowFlags.NoCollapse+imgui.WindowFlags.ShowBorders+imgui.WindowFlags.NoResize)
+		imgui.SetCursorPos(imgui.ImVec2(0, 30))
+		imgui.Columns(2,nil,false)
+		imgui.SetColumnWidth(-1, imgui.GetWindowSize().x/1.4)
+		if imgui.InputText(u8'Тэг в /f', ftegbuff) then mainIni.config.fteg = ftegbuff.v inicfg.save(mainIni, 'LFH.ini')
+		elseif imgui.InputText(u8'Тэг в /r', rtegbuff) then mainIni.config.rteg = rtegbuff.v inicfg.save(mainIni, 'LFH.ini')
+		elseif imgui.InputText(u8'Акцент', accentbuff) then mainIni.config.accent = accentbuff.v inicfg.save(mainIni, 'LFH.ini')	end 
+		imgui.NewLine()
+		imgui.Text(u8'Доклады с поездки на Склад Оружия для СНБ - /so')
+		imgui.Text(u8'Доклады с поездки на Склад Оружия для ВВО - /sopr')
+		imgui.Text(u8'Список лекций для военнослужащих - /lek')
+		imgui.PushItemWidth(130)
+		imgui.NextColumn()
+		imgui.NewLine();imgui.SameLine(30)
+		imgui.Image(img_logo, imgui.ImVec2(140, 140))
+		imgui.NewLine()
+		imgui.CenterColumnText(u8:encode(name))
+		imgui.CenterColumnText(u8:encode(rang))
+		imgui.NewLine()
+		if imgui.Checkbox(u8'Авто скриншот с /time', autoscreen) then  mainIni.config.autoscreen = autoscreen.v inicfg.save(mainIni, 'LFH.ini') end
+		if imgui.Checkbox(u8'HUD', hud) then  mainIni.config.hud = hud.v inicfg.save(mainIni, 'LFH.ini') end
+		imgui.End()
+	end 
+	if so.v then
+	local ex, ey = getScreenResolution()
+		imgui.ShowCursor = true
+		imgui.SetNextWindowPos(imgui.ImVec2(1240, ex /4.7), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 	0.5))
+		imgui.SetNextWindowSize(imgui.ImVec2(215, 170), imgui.Cond.FirstUseEver)
+		imgui.Begin(u8'Поездка за БП', so, imgui.WindowFlags.ShowBorders+imgui.WindowFlags.NoCollapse+imgui.WindowFlags.ShowBorders+imgui.WindowFlags.NoResize)
+		if imgui.Button(u8'Выехал на СО',imgui.ImVec2(200, 30)) then
+			sampSendChat('/r '..u8:decode((rtegbuff.v or ''))..' Докладывает: '..lastname..' | Выехал на СО.')
+			if autoscreen.v then takescreen() end
+		elseif imgui.Button(u8'Прибыл на СО',imgui.ImVec2(200, 30)) then
+			sampSendChat('/r '..u8:decode((rtegbuff.v or ''))..' Докладывает: '..lastname..' | Прибыл на СО, начинаю загрузку боеприпасов.')
+			if autoscreen.v then takescreen() end
+		elseif imgui.Button(u8'Выехал на базу',imgui.ImVec2(200, 30)) then
+			sampSendChat('/r '..u8:decode((rtegbuff.v or ''))..' Докладывает '..lastname..' | Загрузил боеприпасы, выезжаю на базу.')
+			if autoscreen.v then takescreen() end
+		elseif imgui.Button(u8'Прибыл на базу',imgui.ImVec2(200, 30)) then
+			sampSendChat('/r '..u8:decode((rtegbuff.v or ''))..' Докладывает '..lastname..' | Прибыл на базу, начинаю разгрузку боеприпасов.')
+			if autoscreen.v then takescreen() end
+	 	end
+		imgui.NextColumn()
+		imgui.End()
+	end
+	if sopr.v then
+	local ex, ey = getScreenResolution()
+		imgui.ShowCursor = true
+		imgui.SetNextWindowPos(imgui.ImVec2(1240, ex /4.7), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 	0.5))
+		imgui.SetNextWindowSize(imgui.ImVec2(215, 170), imgui.Cond.FirstUseEver)
+		imgui.Begin(u8'Сопровождение', sopr, imgui.WindowFlags.ShowBorders+imgui.WindowFlags.NoCollapse+imgui.WindowFlags.ShowBorders+imgui.WindowFlags.NoResize)
+		if imgui.Button(u8'Выехали на СО',imgui.ImVec2(200, 30)) then
+			sampSendChat('/r '..u8:decode((rtegbuff.v or ''))..' Докладывает: '..lastname..' | Выехали с базы на Склад Оружия | Сопровождаю фуру')
+			if autoscreen.v then takescreen() end
+		elseif imgui.Button(u8'Прибыли на СО',imgui.ImVec2(200, 30)) then
+			sampSendChat('/r '..u8:decode((rtegbuff.v or ''))..' Докладывает '..lastname..' | Прибыли на Склад Оружия | Сопровождаю фуру')
+			if autoscreen.v then takescreen() end
+		elseif imgui.Button(u8'Выехали на базу',imgui.ImVec2(200, 30)) then
+			sampSendChat('/r '..u8:decode((rtegbuff.v or ''))..' Докладывает '..lastname..' | Загрузились на Складе Оружия | Сопровождаю фуру')
+			if autoscreen.v then takescreen() end
+		elseif imgui.Button(u8'Прибыли на базу',imgui.ImVec2(200, 30)) then
+			sampSendChat('/r '..u8:decode((rtegbuff.v or ''))..' Докладывает '..lastname..' | Прибыли на базу | Сопровождаю фуру')
+			if autoscreen.v then takescreen() end
+		end
+		imgui.NextColumn()
+		imgui.End()
+	end
+	if lek.v then
+	local ex, ey = getScreenResolution()
+		imgui.ShowCursor = true
+		imgui.SetNextWindowPos(imgui.ImVec2(1240, ex /4.7), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 	0.5))
+		imgui.SetNextWindowSize(imgui.ImVec2(215, 170), imgui.Cond.FirstUseEver)
+		imgui.Begin(u8'Лекции для военнослужащих', lek, imgui.WindowFlags.ShowBorders+imgui.WindowFlags.NoCollapse+imgui.WindowFlags.ShowBorders+imgui.WindowFlags.NoResize)
+		if imgui.Button(u8'Самовол',imgui.ImVec2(200, 30)) then
+			lua_thread.create(function()
+			sampSendChat('Здравия желаю, бойцы')
+			wait(2000)
+			sampSendChat('Сейчас я вам расскажу лекцию о «Самоволе» и что за него бывает.')
+			wait(2000)
+			sampSendChat('Многие бойцы при нападении на базу бегут за бандитом далеко от базы стреляя в него.')
+			wait(2000)
+			sampSendChat('Но когда вас уже не видно, то вы бежите куда вам угодно.')
+			wait(2000)
+			sampSendChat('Или вот еще один пример:')
+			wait(2000)
+			sampSendChat('Вы стоите на посту «КПП» или на посту «Главный Склад».')
+			wait(2000)
+			sampSendChat('Вы сообщаете в рацию о посте, а потом убегаете с базы, это тоже считается дезертирством.')
+			wait(2000)
+			sampSendChat('Что бывает за дезертирство:')
+			wait(2000)
+			sampSendChat('В случае бойцовского состава, вам выдадут выговор и срок в военной тюрьме.')
+			wait(2000)
+			sampSendChat('В случае офицерского состава, вам выдадут два выговора и срок в военной тюрьме.')
+			wait(2000)
+			sampSendChat('Итог таковой:')
+			wait(2000)
+			sampSendChat('Вы должны жить на базе, это ваш второй дом.')
+			wait(2000)
+			sampSendChat('Лекция окончена. Если есть вопросы, задавайте!')
+			end)
+			if autoscreen.v then takescreen() end
+		elseif imgui.Button(u8'Правила рации',imgui.ImVec2(200, 30)) then
+		lua_thread.create(function()
+			sampSendChat('Здравия желаю, бойцы')
+			wait(2000)
+			sampSendChat('Сейчас я вам расскажу лекцию о пользованием общей рации.')
+			wait(2000)
+			sampSendChat('Во-первых, Рядовым запрещено вообще переходить в общую волну.')
+			wait(2000)
+			sampSendChat('Во-вторых, Рядовым категорически запрещено в эту рацию говорить.')
+			wait(2000)
+			sampSendChat('Если вы уже случайно попутали волну и сказали что-то, то сразу же извинитесь за это.')
+			wait(2000)
+			sampSendChat('И смените её на обычную.')
+			wait(2000)
+			sampSendChat('Если вы будите говорить в общую рацию часто, то:')
+			wait(2000)
+			sampSendChat('В лучшем случаи вы получите наказание или наряд.')
+			wait(2000)
+			sampSendChat('В худшем увольнение и занесение в Чёрный Список Министерства Обороны.')
+			wait(2000)
+			sampSendChat('Лекция окончена. Если есть вопросы, задавайте!')
+			end)
+		elseif imgui.Button(u8'Поведение на КПП',imgui.ImVec2(200, 30)) then
+		lua_thread.create(function()
+			sampSendChat('Здравия желаю, бойцы')
+			wait(2000)
+			sampSendChat('Сейчас я вам расскажу лекцию о военном транспорте.')
+			wait(2000)
+			sampSendChat('Военный транспорт разрешено брать с разрешения Штаба.')
+			wait(2000)
+			sampSendChat('Запрещается оставлять военные транспорт на Складе оружия.')
+			wait(2000)
+			sampSendChat('Военные фуры разрешается брать со звания Мл.Сержант для доставки боеприпасов.')
+			wait(2000)
+			sampSendChat('Патриоты разрешается брать со звания Мл.Сержант для доставки боеприпасов и сопровождение.')
+			wait(2000)
+			sampSendChat('Воздушную технику разрешается брать бойцам национальной гвардии, береговой охраны..')
+			wait(2000)
+			sampSendChat('..и офицерам со звания Майор.')
+			wait(2000)
+			sampSendChat('Военный транспорт «Mesa» разрешено брать со звание Прапорщик для поездки в военкомат.')
+			wait(2000)
+			sampSendChat('Военный автобус разрешено брать с разрешения Штаба.')
+			wait(2000)
+			sampSendChat('Военный транспорт "Yosemite" разрешено брать со звания Старший Лейтенант..')
+			wait(2000)
+			sampSendChat('..для поездки на СО, тренировки, мероприятия и устранения ЧС.')
+			wait(2000)
+			sampSendChat('Военный транспорт "FBI Rancher" разрешено брать со звания Генерал')
+			wait(2000)
+			sampSendChat('Лекция окончена. Если есть вопросы, задавайте!')
+			end)
+		elseif imgui.Button(u8'О военном транспорте',imgui.ImVec2(200, 30)) then
+		lua_thread.create(function()
+			sampSendChat('Здравия желаю, бойцы')
+			wait(2000)
+			sampSendChat('Сейчас я расскажу вам как вести себя на посту КПП с гражданскими.')
+			wait(2000)
+			sampSendChat('Сначала нужно поприветствовать и спросить цель прибытия у гостя.')
+			wait(2000)
+			sampSendChat('При этом вы должны убрать оружие, не нужно пугать или проявлять агрессию.')
+			wait(2000)
+			sampSendChat('Выполняйте все просьбы гражданина, если они не противоречат уставу.')
+			wait(2000)
+			sampSendChat('Старайтесь избежать конфликтов, если таковые могут возникнуть.')
+			wait(2000)
+			sampSendChat('Но если все- таки гражданин начал хамить, кричать и драться, то:')
+			wait(2000)
+			sampSendChat('Просите гостя отъехать или отойти на 20 метров от КПП.')
+			wait(2000)
+			sampSendChat('В случае неповиновения разрешено применить силу, досчитав до десяти.')
+			wait(2000)
+			sampSendChat('Не нужно начинать диалог с гражданами, стоящими дальше 20 метров от КПП.')
+			wait(2000)
+			sampSendChat('Запрещено стрелять, кричать и бить людей без причины.')
+			wait(2000)
+			sampSendChat('За это вы будете уволены и занесены в ЧС МО.')
+			wait(2000)
+			sampSendChat('Военный транспорт "FBI Rancher" разрешено брать со звания Генерал')
+			wait(2000)
+			sampSendChat('Лекция окончена. Если есть вопросы, задавайте!')
+			end)
+	 	end
+		imgui.NextColumn()
+		imgui.End()
+	end
+end
+
+function imgui.CenterText(text)
+    imgui.SetCursorPosX((imgui.GetWindowSize().x/2) - (imgui.CalcTextSize(text).x / 2))
+    imgui.Text(text)
+end
+
+function imgui.CenterColumnText(text)
+    imgui.SetCursorPosX((imgui.GetColumnOffset() + (imgui.GetColumnWidth() / 2)) - imgui.CalcTextSize(text).x / 2)
+    imgui.Text(text)
+end
+
+function sampev.onSendChat(msg)
+	msg = u8:decode(accentbuff.v)..' '..msg
+	return {msg}
+end
+
+function fradio(arg)
+	if #arg == 0 then
+		sampAddChatMessage('/f [текст]', gray)
+	else
+		sampSendChat('/f '..u8:decode((ftegbuff.v or ''))..' '..arg)
+	end
+end
+
+function rradio(arg)
+	if #arg == 0 then
+		sampAddChatMessage('/r [текст]', gray)
+	else
+		sampSendChat('/r '..u8:decode((rtegbuff.v or ''))..' '..arg)
+	end
+end
+
+function save()
+	inicfg.save(mainIni, 'LFH.ini')
+end
+
+function cmd_invite(id)
+ lua_thread.create(function()
+	if id:find('%d+') then
+		sampSendChat('/do В левой руке кейс. ')
+		wait(2000)
+		sampSendChat('/me открыл кейс, достал оттуда пакет формы, погоны и шевроны. ')
+		wait(2000)
+		sampSendChat('/me достал из кейса рацию, передал все вещи человеку напротив. ')
+		wait(1000)
+		sampSendChat('/invite '..id)
+	else
+		sampSendChat('/invite')
+	end
+ end)
+end
+function cmd_division(id)
+ lua_thread.create(function()
+	if id:find('%d+') then
+		sampSendChat('/do В кармане штанов лежит смартфон.')
+		wait(2000)
+		sampSendChat('/me достал смартфон, разблокировал его, запустил базу данных')
+		wait(2000)
+		sampSendChat('/me нашел в списке состава нужного бойца, изменил ему взвод, заблокировал смартфон и положил его обратно в карман.')
+		wait(1000)
+		sampSendChat('/division '..id)
+	else
+		sampSendChat('/division')
+	end
+ end)
+end
+function cmd_uninvite(id)
+ lua_thread.create(function()
+	if #id>0 then
+		sampSendChat('/do В кармане штанов лежит смартфон.')
+		wait(2000)
+		sampSendChat('/me достал смартфон, разблокировал его, запустил базу данных')
+		wait(2000)
+		sampSendChat('/me нашел в списке состава нужного бойца, нажал на кнопку «Увольнение», заблокировал смартфон и положил его обратно в карман.')
+		wait(1000)
+		sampSendChat('/uninvite '..id)
+	else
+		sampSendChat('/uninvite')
+	end
+ end)
+end
+function cmd_fwarn(id)
+ lua_thread.create(function()
+	if #id>0 then
+		sampSendChat('/do В кармане штанов лежит смартфон.')
+		wait(2000)
+		sampSendChat('/me достал смартфон, разблокировал его, запустил базу данных')
+		wait(2000)
+		sampSendChat('/me нашел в списке состава нужного бойца, нажал на кнопку «Выговор», заблокировал смартфон и положил его обратно в карман.')
+		wait(1000)
+		sampSendChat('/fwarn '..id)
+	else
+		sampSendChat('/fwarn')
+	end
+ end)
+end
+function cmd_dis(id)
+ lua_thread.create(function()
+	if #id>0 then
+		sampSendChat('/do В левой руке кейс.')
+		wait(2000)
+		sampSendChat('/me достал с кейса чистый бланк увольнительного билета и ручку, приступил к заполнению билета.')
+		wait(2000)
+		sampSendChat('/do Увольнительный билет оформлен на военнослужащего и утвержден командованием. ')
+		wait(2000)
+		sampSendChat('/me протянул увольнительный билет человеку напротив, спрятал ручку обратно в кейс.')
+		wait(1000)
+		sampSendChat('/dis '..id)
+	else
+		sampSendChat('/dis')
+	end
+ end)
+end
+function cmd_rang(id)
+ lua_thread.create(function()
+	if id:find('%d+') then
+		sampSendChat('/do В левой руке кейс.')
+		wait(2000)
+		sampSendChat('/me открыл кейс, достал из него новые погоны и шевроны.')
+		wait(2000)
+		sampSendChat('/me протянул новые погоны и шевроны военнослужащему напротив, закрыл кейс. ')
+		wait(1000)
+		sampSendChat('/rang '..id)
+	else
+		sampSendChat('/rang')
+	end
+ end)
+end
+function cmd_setskin(id)
+ lua_thread.create(function()
+	if id:find('%d+') then
+		sampSendChat('/do В левой руке кейс.')
+		wait(2000)
+		sampSendChat('/me открыл кейс, затем достал из него пакет формы и шевроны.')
+		wait(2000)
+		sampSendChat('/me протянул пакет формы и шевроны военнослужащему напротив, закрыл кейс.')
+		wait(1000)
+		sampSendChat('/setskin '..id)
+	else
+		sampSendChat('/setskin')
+	end
+ end)
+end
+
+function takescreen()
+	lua_thread.create(function()
+		sampSendChat('/time')
+		wait(300)
+		memory.setuint8( sampGetBase() + 0x119CBC, 1 )
+	end)
+end
+
+function autoupdate(json_url, prefix, url)
+  local dlstatus = require('moonloader').download_status
+  local json = getWorkingDirectory() .. '\\'..thisScript().name..'-version.json'
+  if doesFileExist(json) then os.remove(json) end
+  downloadUrlToFile(json_url, json,
+    function(id, status, p1, p2)
+      if status == dlstatus.STATUSEX_ENDDOWNLOAD then
+        if doesFileExist(json) then
+          local f = io.open(json, 'r')
+          if f then
+            local info = decodeJson(f:read('*a'))
+            updatelink = info.updateurl
+            updateversion = info.latest
+            f:close()
+            os.remove(json)
+            if updateversion ~= thisScript().version then
+              lua_thread.create(function(prefix)
+                local dlstatus = require('moonloader').download_status
+                local color = -1
+                sampAddChatMessage((u8'Обнаружено обновление. Пытаюсь обновиться c '..thisScript().version..' на '..updateversion), color)
+                wait(250)
+                downloadUrlToFile(updatelink, thisScript().path,
+                  function(id3, status1, p13, p23)
+                    if status1 == dlstatus.STATUS_DOWNLOADINGDATA then
+                      print(string.format('Загружено %d из %d.', p13, p23))
+                    elseif status1 == dlstatus.STATUS_ENDDOWNLOADDATA then
+                      print('Загрузка обновления завершена.')
+                      sampAddChatMessage((u8'Обновление завершено!'), color)
+                      goupdatestatus = true
+                      lua_thread.create(function() wait(500) thisScript():reload() end)
+                    end
+                    if status1 == dlstatus.STATUSEX_ENDDOWNLOAD then
+                      if goupdatestatus == nil then
+                        sampAddChatMessage((u8'Обновление прошло неудачно. Запускаю устаревшую версию..'), color)
+                        update = false
+                      end
+                    end
+                  end
+                )
+                end, prefix
+              )
+            else
+              update = false
+              print('v'..thisScript().version..': Обновление не требуется.')
+            end
+          end
+        else
+          print('v'..thisScript().version..': Не могу проверить обновление. Смиритесь или проверьте самостоятельно на '..url)
+          update = false
+        end
+      end
+    end
+  )
+  while update ~= false do wait(100) end
+end
+
+function apply_custom_style()
+    imgui.SwitchContext()
+    local style = imgui.GetStyle()
+    local colors = style.Colors
+    local clr = imgui.Col
+    local ImVec4 = imgui.ImVec4
+
+    style.WindowRounding = 2.0
+    style.WindowTitleAlign = imgui.ImVec2(0.5, 0.84)
+    style.ChildWindowRounding = 2.0
+    style.FrameRounding = 2.0
+    style.ItemSpacing = imgui.ImVec2(5.0, 4.0)
+    style.ScrollbarSize = 13.0
+    style.ScrollbarRounding = 0
+    style.GrabMinSize = 8.0
+    style.GrabRounding = 1.0
+
+    colors[clr.FrameBg]                = ImVec4(0.48, 0.16, 0.16, 0.54)
+    colors[clr.FrameBgHovered]         = ImVec4(0.98, 0.26, 0.26, 0.40)
+    colors[clr.FrameBgActive]          = ImVec4(0.98, 0.26, 0.26, 0.67)
+    colors[clr.TitleBg]                = ImVec4(0.48, 0.16, 0.16, 1.00)
+    colors[clr.TitleBgActive]          = ImVec4(0.48, 0.16, 0.16, 1.00)
+    colors[clr.TitleBgCollapsed]       = ImVec4(0.00, 0.00, 0.00, 0.51)
+    colors[clr.CheckMark]              = ImVec4(0.98, 0.26, 0.26, 1.00)
+    colors[clr.SliderGrab]             = ImVec4(0.88, 0.26, 0.24, 1.00)
+    colors[clr.SliderGrabActive]       = ImVec4(0.98, 0.26, 0.26, 1.00)
+    colors[clr.Button]                 = ImVec4(0.98, 0.26, 0.26, 0.40)
+    colors[clr.ButtonHovered]          = ImVec4(0.98, 0.26, 0.26, 1.00)
+    colors[clr.ButtonActive]           = ImVec4(0.98, 0.06, 0.06, 1.00)
+    colors[clr.Header]                 = ImVec4(0.98, 0.26, 0.26, 0.31)
+    colors[clr.HeaderHovered]          = ImVec4(0.98, 0.26, 0.26, 0.80)
+    colors[clr.HeaderActive]           = ImVec4(0.98, 0.26, 0.26, 1.00)
+    colors[clr.Separator]              = colors[clr.Border]
+    colors[clr.SeparatorHovered]       = ImVec4(0.75, 0.10, 0.10, 0.78)
+    colors[clr.SeparatorActive]        = ImVec4(0.75, 0.10, 0.10, 1.00)
+    colors[clr.ResizeGrip]             = ImVec4(0.98, 0.26, 0.26, 0.25)
+    colors[clr.ResizeGripHovered]      = ImVec4(0.98, 0.26, 0.26, 0.67)
+    colors[clr.ResizeGripActive]       = ImVec4(0.98, 0.26, 0.26, 0.95)
+    colors[clr.TextSelectedBg]         = ImVec4(0.98, 0.26, 0.26, 0.35)
+    colors[clr.Text]                   = ImVec4(1.00, 1.00, 1.00, 1.00)
+    colors[clr.TextDisabled]           = ImVec4(0.50, 0.50, 0.50, 1.00)
+    colors[clr.WindowBg]               = ImVec4(0.06, 0.06, 0.06, 0.94)
+    colors[clr.ChildWindowBg]          = ImVec4(1.00, 1.00, 1.00, 0.00)
+    colors[clr.PopupBg]                = ImVec4(0.08, 0.08, 0.08, 0.94)
+    colors[clr.ComboBg]                = colors[clr.PopupBg]
+    colors[clr.Border]                 = ImVec4(0.43, 0.43, 0.50, 0.50)
+    colors[clr.BorderShadow]           = ImVec4(0.00, 0.00, 0.00, 0.00)
+    colors[clr.MenuBarBg]              = ImVec4(0.14, 0.14, 0.14, 1.00)
+    colors[clr.ScrollbarBg]            = ImVec4(0.02, 0.02, 0.02, 0.53)
+    colors[clr.ScrollbarGrab]          = ImVec4(0.31, 0.31, 0.31, 1.00)
+    colors[clr.ScrollbarGrabHovered]   = ImVec4(0.41, 0.41, 0.41, 1.00)
+    colors[clr.ScrollbarGrabActive]    = ImVec4(0.51, 0.51, 0.51, 1.00)
+    colors[clr.CloseButton]            = ImVec4(0.41, 0.41, 0.41, 0.50)
+    colors[clr.CloseButtonHovered]     = ImVec4(0.98, 0.39, 0.36, 1.00)
+    colors[clr.CloseButtonActive]      = ImVec4(0.98, 0.39, 0.36, 1.00)
+    colors[clr.PlotLines]              = ImVec4(0.61, 0.61, 0.61, 1.00)
+    colors[clr.PlotLinesHovered]       = ImVec4(1.00, 0.43, 0.35, 1.00)
+    colors[clr.PlotHistogram]          = ImVec4(0.90, 0.70, 0.00, 1.00)
+    colors[clr.PlotHistogramHovered]   = ImVec4(1.00, 0.60, 0.00, 1.00)
+    colors[clr.ModalWindowDarkening]   = ImVec4(0.80, 0.80, 0.80, 0.35)
+end
+apply_custom_style()
